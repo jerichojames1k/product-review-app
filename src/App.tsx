@@ -3,7 +3,7 @@ import React from "react";
 import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./view/components/Layout";
-import ProductListPage from "./view/pages";
+import ProductListPage from "./view/pages/ProductListPage";
 function App() {
   return (
     <BrowserRouter>
