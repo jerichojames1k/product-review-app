@@ -79,7 +79,7 @@ function search(query:string) {
                     item?.image ??
                     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSG58OcMgzuh978O8Scphw_v8Gu7NhyLKW22Q&usqp=CAU"
                   }
-                  alt="product-images"
+                  alt="product-images-details"
                 />
               </div>
               <span>
