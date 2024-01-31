@@ -1,7 +1,6 @@
 import axios from "axios";
-//import axios from '../../api/axios'
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from 'react-router-dom'
+import {useNavigate } from 'react-router-dom'
 const ProductListPage: React.FC = () => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -24,11 +23,12 @@ const ProductListPage: React.FC = () => {
       const allProducts = responseProducts?.data
         .map((item: any) => {
           const category = responseCategories?.data.find(
-            (itemCategory: any) => itemCategory?.id == item?.categoryId
+            (itemCategory: any) => itemCategory?.id === item?.categoryId
           );
           if (item) {
             return { ...item, categoryName: category?.["name"] ?? "" };
           }
+          return
         })
         .filter((x: any) => x);
       setProducts(allProducts);
@@ -133,10 +133,10 @@ const ProductListPage: React.FC = () => {
                 <img
                   className="w-[100%] h-full object-cover"
                   src={
-                    item?.image 
+                    item?.image ?? ''
                   
                   }
-                  alt="product-images-details"
+                  alt={"product-images-details"+item?.id}
                 />
               </div>
               <span>

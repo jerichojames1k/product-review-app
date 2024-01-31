@@ -30,18 +30,16 @@ const ProductDetailsPage: React.FC = () => {
     setLiked(reviews);
   };
 
-  console.log(
-    "%c 🐾: ProductDetailsPage:React.FC -> liked ",
-    "font-size:16px;background-color:#9fb2f2;color:white;",
-    liked
-  );
 
-  const handleLike = (reviewId: string) => {
+
+  const handleLike = (reviewId?: string,isChecked?:boolean) => {
     setLiked((prevReviews: any) =>
     prevReviews.map((review:any) =>
       review.id === reviewId ? { ...review, liked: !review.liked } : review
     )
   );
+  const status=Object.keys(liked ?? {}).length && liked.find((el:IILike)=>el?.id==reviewId) 
+  console.log("%c ✳️: handleLike -> status ", "font-size:16px;background-color:#c78596;color:white;", status)
   };
   useEffect(() => {
     const { item } = location?.state ?? {};
@@ -64,7 +62,7 @@ const ProductDetailsPage: React.FC = () => {
             <img
               className="w-[100%] h-full object-cover"
               src={product?.image}
-              alt="product-image"
+              alt="product-image-detail"
             />
           </div>
 
@@ -101,7 +99,7 @@ const ProductDetailsPage: React.FC = () => {
         <div className="flex flex-wrap">
           {Object.keys(reviewsProducts ?? []).length &&
             reviewsProducts.map((item: any) => {
-              const isLike=Object.keys(liked ?? {}).length && liked.find((el:any)=>el?.id==item?.id) as IILike
+              const isLike=Object.keys(liked ?? {}).length && liked.find((el:IILike)=>el?.id==item?.id) 
               const number = item?.rating.toString() as string;
               const rate: string = number
                 ? parseInt(number?.charAt(0)) > 4 &&
@@ -144,14 +142,14 @@ const ProductDetailsPage: React.FC = () => {
                   </span>
                   <button
                     onClick={() => {
-                      handleLike(item?.id);
+                      handleLike(item?.id,isLike as any);
                     }}
                     className={`flex items-center space-x-1 px-2 py-1 bg-gray-200 rounded-full ${
-                      isLike?.liked? "text-blue-500" : "text-gray-500"
+                      isLike && isLike?.['liked']? "text-blue-500" : "text-gray-500"
                     } hover:bg-gray-300 focus:outline-none`}
                   >
                     <AiOutlineLike />
-                    <span>{isLike?.['liked'] ? "Liked" : "Like"}</span>
+                    <span>{isLike && isLike?.['liked'] ? "Liked" : "Like"}</span>
                   </button>
                 </div>
               );
