@@ -1,89 +1,162 @@
 import axios from "axios";
-//import axios from '../../api/axios'
 import React, { useEffect, useState } from "react";
-
-const ProductDetailsPage: React.FC = () => {
-  const [categories, setCategories] = useState([]);
-  console.log("%c 🔎: ProductListPage:React.FC -> categories ", "font-size:16px;background-color:#c375cb;color:white;", categories)
-  const [data, setData] = useState([]);
-  const handleFetchData = async () => {
-    try {
-      // Make GET request to the API endpoint
-      const response = await axios.get(
-        "https://5ffbed0e63ea2f0017bdb67d.mockapi.io/categories?sortBy=createdAt&order=desc"
-      );
-      console.log("%c 💰: handleFetchData ->  response?.data ", "font-size:16px;background-color:#b0848f;color:white;",  response?.data);
-      const products = response?.data.flatMap(
-        (category: { products: Object }) => category.products
-      );
-
-      // const allProducts = products.flatMap((category: Object) => category);
-      setCategories(products);
-      setData(products);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
-  // Define your search function
-function search(query:string) {
-    // Filter the array based on the query
-    return data.filter((item:any)=> {
-        // Check if the name property of the object contains the query
-        if (item.name && item.name.toLowerCase().includes(query.toLowerCase())) {
-            return true;
-        }
-        // Check if the name property inside the category key object contains the query
-        if (item.category && item.category.name && item.category.name.toLowerCase().includes(query.toLowerCase())) {
-            return true;
-        }
-        // If neither condition is met, return false
-        return false;
-    });
+import { useLocation } from "react-router-dom";
+import { AiOutlineLike } from "react-icons/ai";
+const moment = require("moment");
+interface IILike{
+  id:string
+  liked:boolean
 }
-  const handleDataSearch = (searchText: string) => {
-    const searchQuery = searchText.toLowerCase() ;
-    // const filteredData = data.filter((item: any) =>
-    //   item.name.toLowerCase().includes(searchQuery)
-    // );
-    // setCategories(filteredData);
-    const searchResult = search(searchQuery);
-    console.log("%c 🦅: handleDataSearch -> searchResult ", "font-size:16px;background-color:#5f80b0;color:white;", searchResult)
-    setCategories(searchResult);
-    return;
+const ProductDetailsPage: React.FC = () => {
+  const [product, setProduct] = useState<any>({});
+  const [reviewsProducts, setReviewProducts] = useState<any>({});
+  const location = useLocation();
+  const [liked, setLiked] = useState<IILike[]>([]);
+  const totalRating = product?.reviews
+    ?.map((item: any) => {
+      const number = item?.rating.toString() as string;
+      return parseInt(number?.charAt(0));
+    })
+    .reduce((curr: any, acc: any) => curr + acc, 0);
+
+  const handleProductReviews = async (id: string) => {
+    const result = await axios.get(
+      `https://5ffbed0e63ea2f0017bdb67d.mockapi.io/products/${id}/reviews?sortBy=rating&order=des`
+    );
+    setReviewProducts(result?.data ?? []);
+    const reviews =
+      Object.keys(result?.data ?? []).length &&
+      result?.data.map((item: any) => ({ id: item?.id, liked: false }));
+    setLiked(reviews);
   };
 
+  console.log(
+    "%c 🐾: ProductDetailsPage:React.FC -> liked ",
+    "font-size:16px;background-color:#9fb2f2;color:white;",
+    liked
+  );
+
+  const handleLike = (reviewId: string) => {
+    setLiked((prevReviews: any) =>
+    prevReviews.map((review:any) =>
+      review.id === reviewId ? { ...review, liked: !review.liked } : review
+    )
+  );
+  };
   useEffect(() => {
-    handleFetchData();
-  }, []);
+    const { item } = location?.state ?? {};
+    console.log(
+      "%c 🏐: ProductDetailsPage:React.FC -> item ",
+      "font-size:16px;background-color:#718bb6;color:white;",
+      item
+    );
+    setProduct({ ...item });
+    handleProductReviews(item?.id);
+  }, [location?.state]);
   return (
-    <div>
-      <div className="flex flex-wrap">
-        {categories.map((item: any) => {
-          return (
-            <div className="w-[25%] px-5 pb-0 pt-20" onClick={()=>{}}>
-              <div className="w-full aspect-square border border-2">
-                <img
-                  className="w-[100%] h-full object-cover"
-                  src={
-                    item?.image ??
-                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSG58OcMgzuh978O8Scphw_v8Gu7NhyLKW22Q&usqp=CAU"
-                  }
-                  alt="product-image"
-                />
-              </div>
-              <span>
-                <b>Name</b> <p>{item?.name}</p>
-              </span>
-              <span>
-                <b>Category</b> <p>{item?.category?.name ?? "N/A"}</p>
-              </span>
-              <span>
-                <b> Review count</b> <p>{0}</p>
-              </span>
-            </div>
-          );
-        })}
+    <div className="">
+      <div className="flex flex-wrap w-full justify-center">
+        <div className="w-[25%] px-4 pb-0 pt-20">
+          <span className="flex space-x-2">
+            <b>Name:</b> <p>{product?.name}</p>
+          </span>
+          <div className="w-full aspect-square border border-2">
+            <img
+              className="w-[100%] h-full object-cover"
+              src={product?.image}
+              alt="product-image"
+            />
+          </div>
+
+          <span className="flex space-x-2">
+            <b>Category:</b>{" "}
+            <p>{product?.categoryName ? product?.categoryName : "N/A"}</p>
+          </span>
+          <span className="flex space-x-2">
+            <b>Price:</b> <p>{product?.currency + " " + product?.price}</p>
+          </span>
+          <span className="flex space-x-2">
+            <b>Details:</b> <p>{product?.details}</p>
+          </span>
+          <span className="flex space-x-2">
+            <b>Overall Rate:</b>{" "}
+            <p>
+              {Object.keys(product?.reviews ?? []).length ? totalRating : ""}
+            </p>
+          </span>
+          <span className="flex space-x-2">
+            <b>Date Created:</b>{" "}
+            <p>{moment(product?.createdAt).format("MM/DD/YY")}</p>
+          </span>
+          <div className="pt-2 pb-2 px">
+            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Add Review
+            </button>
+          </div>
+          <span className="flex space-x-2 pt-2">
+            <b>Reviews:</b>
+          </span>
+        </div>
+
+        <div className="flex flex-wrap">
+          {Object.keys(reviewsProducts ?? []).length &&
+            reviewsProducts.map((item: any) => {
+              const isLike=Object.keys(liked ?? {}).length && liked.find((el:any)=>el?.id==item?.id) as IILike
+              const number = item?.rating.toString() as string;
+              const rate: string = number
+                ? parseInt(number?.charAt(0)) > 4 &&
+                  parseInt(number?.charAt(0)) <= 9
+                  ? "5"
+                  : number.charAt(0)
+                : "";
+              return (
+                <div className="w-[25%] px-5 pb-0 pt-4" key={item?.id}>
+                  <span className="flex space-x-2 w-100">
+                    <b>AuthorName:</b> <p>{item?.name}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>AuthorAvatar:</b>{" "}
+                    <div className="aspect-w-1 aspect-h-1 rounded-full bg-gray-300">
+                      <img
+                        className="inline-block h-12 w-12 rounded-full ring-2 ring-white"
+                        src={item?.avatar}
+                        alt="author-image"
+                      />
+                    </div>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>AuthorEmail:</b> <p>{item?.email ?? ""}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>Title:</b> <p>{item?.title ?? ""}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>Content:</b> <p>{item?.content ?? ""}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>Rating:</b> <p>{rate}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>Badge:</b> <p>{item?.verified ? "true" : "false"}</p>
+                  </span>
+                  <span className="flex space-x-2">
+                    <b>Likes:</b> <p>{item?.likes ?? ""}</p>
+                  </span>
+                  <button
+                    onClick={() => {
+                      handleLike(item?.id);
+                    }}
+                    className={`flex items-center space-x-1 px-2 py-1 bg-gray-200 rounded-full ${
+                      isLike?.liked? "text-blue-500" : "text-gray-500"
+                    } hover:bg-gray-300 focus:outline-none`}
+                  >
+                    <AiOutlineLike />
+                    <span>{isLike?.['liked'] ? "Liked" : "Like"}</span>
+                  </button>
+                </div>
+              );
+            })}
+        </div>
       </div>
     </div>
   );
