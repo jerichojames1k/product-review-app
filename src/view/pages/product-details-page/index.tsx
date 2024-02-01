@@ -9,7 +9,9 @@ const moment = require("moment");
 const ProductDetailsPage: React.FC = () => {
   const [product, setProduct] = useState<IProductProps>({});
   const [reviewsProducts, setReviewProducts] = useState<IReviewProps[]>([]);
-
+  console.log("%c 🥜: ProductDetailsPage:React.FC -> reviewsProducts ", "font-size:16px;background-color:#b00d72;color:white;", reviewsProducts)
+  const [countRating,setCountRating]=useState({1:0,2:0,3:0,4:0,5:0})
+  console.log("%c 🧝‍♂️: ProductDetailsPage:React.FC -> countRating ", "font-size:16px;background-color:#43ac2c;color:white;", countRating)
   const location = useLocation();
   const navigate = useNavigate();
   const { item } = location?.state ?? {};
@@ -83,6 +85,27 @@ const ProductDetailsPage: React.FC = () => {
       }
     );
   };
+  const handleCountRating=(reviews:IReviewProps[])=>{
+    return reviews.reduce((countMap:any, review:IReviewProps) => {
+      const number=review.rating ? review.rating.toString() : 0;
+      const rating: number = number
+      ? parseInt(number?.charAt(0)) > 4 &&
+        parseInt(number?.charAt(0)) <= 9
+        ? 5
+        : parseInt(number.charAt(0))
+      : 0;
+      // Increment the count for the specific rating
+      countMap[rating] = (countMap[rating] || 0) + 1;
+  
+      return countMap;
+    }, {});
+  }
+  const handleViewAllRating=()=>{
+    const ratingCounts = handleCountRating(reviewsProducts);
+    console.log("%c ⏯️: handleViewAllRating -> ratingCounts ", "font-size:16px;background-color:#8b2767;color:white;", ratingCounts)
+    setCountRating({...countRating,...ratingCounts})
+  }
+
   useEffect(() => {
     setProduct({ ...item });
     handleProductReviews(item?.id, false);
@@ -113,9 +136,9 @@ const ProductDetailsPage: React.FC = () => {
             <b>Details:</b> <p>{product?.details}</p>
           </span>
           <span className="flex space-x-2">
-            <b>Overall Rate:</b>{" "}
+            <b onClick={handleViewAllRating}>Overall Rating</b>{" "}
             <p>
-              {Object.keys(product?.reviews ?? []).length ? totalRating : ""}
+              {Object.keys(product?.reviews ?? []).length ? `${'('+totalRating+')'}` : ""}
             </p>
           </span>
           <span className="flex space-x-2">
@@ -133,7 +156,7 @@ const ProductDetailsPage: React.FC = () => {
             </button>
           </div>
           <span className="flex space-x-2 pt-2">
-            <b>Reviews:</b>
+            <b className='text-2xl'>Reviews</b>
           </span>
         </div>
       </div>
@@ -169,7 +192,7 @@ const ProductDetailsPage: React.FC = () => {
                   </div>
                 </span>
                 <span className="flex space-x-2">
-                  <b>AuthorEmail:</b> <p>{item?.email ?? ""}</p>
+                  <b>AuthorEmail:</b> <p className='break'>{item?.email ?? ""}</p>
                 </span>
                 <span className="flex space-x-2">
                   <b>Title:</b> <p>{item?.title ?? ""}</p>
