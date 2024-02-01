@@ -1,10 +1,12 @@
-import axios from "axios";
+
+import axios from '../../../api/axios'
 import React, { useEffect, useState } from "react";
 import {useNavigate } from 'react-router-dom'
+import { ICategoriesProps, IProductProps } from "./types";
+import { AxiosResponse } from 'axios';
 const ProductListPage: React.FC = () => {
-  const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
-  console.log("%c 👩‍👩‍👧‍👧: ProductListPage:React.FC -> products ", "font-size:16px;background-color:#7058b0;color:white;", products)
+  const [categories, setCategories] = useState<ICategoriesProps[]>([]);
+  const [products, setProducts] = useState<IProductProps[]>([]);
   
   const [selectedCategory, setSelectedCategory] = useState("");
   const navigate = useNavigate()
@@ -12,26 +14,27 @@ const ProductListPage: React.FC = () => {
   const handleFetchData = async () => {
     try {
       // Make GET request to all categories
-      const responseCategories = await axios.get(
-        "https://5ffbed0e63ea2f0017bdb67d.mockapi.io/categories"
+      const responseCategories = await axios.get<any, AxiosResponse<any, any>, any>(
+        "categories"
       );
       setCategories(responseCategories?.data ?? []);
       // Make GET request to all products
-      const responseProducts = await axios.get(
-        "https://5ffbed0e63ea2f0017bdb67d.mockapi.io/products?sortBy=createdAt&order=des"
+      const responseProducts = await axios.get<any, AxiosResponse<any, any>, any>(
+        "products?sortBy=createdAt&order=desc"
       );
       const allProducts = responseProducts?.data
-        .map((item: any) => {
+        .map((item: IProductProps) => {
           const category = responseCategories?.data.find(
-            (itemCategory: any) => itemCategory?.id === item?.categoryId
+            (itemCategory:ICategoriesProps) => itemCategory?.id === item?.categoryId
           );
           if (item) {
             return { ...item, categoryName: category?.["name"] ?? "" };
           }
-          return
+          return null;
         })
-        .filter((x: any) => x);
+        .filter((x:Object) => x);
       setProducts(allProducts);
+      return allProducts
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -41,20 +44,21 @@ const ProductListPage: React.FC = () => {
   const handleDataSearch = async (searchText: string) => {
     const searchQuery = searchText.toLowerCase();
     if (searchQuery) {
-      const searchResult = await axios.get(
-        `https://5ffbed0e63ea2f0017bdb67d.mockapi.io/products?search=${searchQuery}`
+      const searchResult = await axios.get<any, AxiosResponse<any, any>, any>(
+        `products?search=${searchQuery}`
       );
 
       const allSearchProducts = searchResult?.data
-        .map((item: any) => {
+        .map((item: IProductProps) => {
           const category = categories.find(
-            (itemCategory: any) => itemCategory?.id == item?.categoryId
+            (itemCategory:ICategoriesProps) => itemCategory?.id === item?.categoryId
           );
           if (item) {
-            return { ...item, categoryName: category?.["name"] ?? "" };
+            return { ...item, categoryName: category?.name ?? "" };
           }
+          return null;
         })
-        .filter((x: any) => x);
+        .filter((y:Object) => y);
       setProducts(allSearchProducts);
       return;
     } else {
@@ -73,13 +77,13 @@ const ProductListPage: React.FC = () => {
     setSelectedCategory(event.target.value);
     if (event.target.value) {
       const searchResult = await axios.get(
-        `https://5ffbed0e63ea2f0017bdb67d.mockapi.io/products?categoryId=${event.target.value}`
+        `products?categoryId=${event.target.value}`
       );
       const productCategories = searchResult?.data
-        .filter((el: any) => el?.categoryId == event.target.value)
-        .map((item: any) => {
+        .filter((el: IProductProps) => el?.categoryId === event.target.value)
+        .map((item: ICategoriesProps) => {
           const categoryData = categories.find(
-            (itemCategory: any) => itemCategory?.id == item?.categoryId
+            (itemCategory: ICategoriesProps) => itemCategory?.id === item?.categoryId
           );
           return { ...item, categoryName: categoryData?.["name"] };
         });
@@ -89,7 +93,7 @@ const ProductListPage: React.FC = () => {
       handleFetchData();
     }
   };
-  const handleNavigation=(item:any)=>{
+  const handleNavigation=(item:IProductProps)=>{
     navigate("/product", {
       state: {
         item,
@@ -116,7 +120,7 @@ const ProductListPage: React.FC = () => {
             className="border-2 rounded-md px-4 py-2"
           >
             <option value="">{"All Categories"}</option>
-            {categories.map((category: any) => (
+            {categories.map((category: ICategoriesProps) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
@@ -126,7 +130,7 @@ const ProductListPage: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap">
-        {products.map((item: any) => {
+        {products.map((item:IProductProps) => {
           return (
             <div className="w-[25%] px-5 pb-0 pt-20" onClick={() => {handleNavigation(item)}} key={item?.id}>
               <div className="w-full aspect-square border border-2">
@@ -136,14 +140,14 @@ const ProductListPage: React.FC = () => {
                     item?.image ?? ''
                   
                   }
-                  alt={"product-images-details"+item?.id}
+                  alt={"product-details-"+item?.id}
                 />
               </div>
               <span>
                 <b>Name</b> <p>{item?.name}</p>
               </span>
               <span>
-                <b>Category</b>{" "}
+                <b>Categoryss</b>{" "}
                 <p>{item?.categoryName ? item?.categoryName : "N/A"}</p>
               </span>
               <span>

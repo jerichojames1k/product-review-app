@@ -1,55 +1,91 @@
-import axios from "axios";
+import axios from '../../../api/axios'
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AiOutlineLike } from "react-icons/ai";
+import { IILike, IProductProps, IReviewProps } from "./types";
+import { AxiosResponse } from 'axios';
 const moment = require("moment");
-interface IILike{
-  id:string
-  liked:boolean
-}
+
 const ProductDetailsPage: React.FC = () => {
-  const [product, setProduct] = useState<any>({});
-  const [reviewsProducts, setReviewProducts] = useState<any>({});
+  const [product, setProduct] = useState<IProductProps>({});
+  const [reviewsProducts, setReviewProducts] = useState<IReviewProps[]>([]);
+
   const location = useLocation();
+  const navigate = useNavigate();
+  const { item } = location?.state ?? {};
   const [liked, setLiked] = useState<IILike[]>([]);
   const totalRating = product?.reviews
-    ?.map((item: any) => {
+    ?.map((item:IReviewProps) => {
       const number = item?.rating.toString() as string;
       return parseInt(number?.charAt(0));
     })
-    .reduce((curr: any, acc: any) => curr + acc, 0);
+    .reduce((curr: number, acc: number) => curr + acc, 0);
 
-  const handleProductReviews = async (id: string) => {
-    const result = await axios.get(
-      `https://5ffbed0e63ea2f0017bdb67d.mockapi.io/products/${id}/reviews?sortBy=rating&order=des`
-    );
-    setReviewProducts(result?.data ?? []);
-    const reviews =
-      Object.keys(result?.data ?? []).length &&
-      result?.data.map((item: any) => ({ id: item?.id, liked: false }));
-    setLiked(reviews);
+  const handleProductReviews = async (id?: string, isLiked?: boolean) => {
+    try {
+      const result = await axios.get<any, AxiosResponse<any, any>, any>(
+        `products/${id}/reviews?sortBy=likes&order=desc`
+      );
+      setReviewProducts(result?.data ?? []);
+      if (!isLiked) {
+        const reviews =
+          Object.keys(result?.data ?? []).length &&
+          result?.data.map((item:IReviewProps) => ({
+            id: item?.id,
+            liked: false,
+            likes: item?.likes,
+          }));
+        setLiked(reviews);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
 
+  const handleLike = async (reviewId?: string) => {
+    const productCurrentLikes= reviewsProducts.find(
+      (el:IReviewProps) => el?.id == reviewId
+    ) as IReviewProps;
+    const status =
+      Object.keys(liked ?? {}).length &&
+      liked.find((el: IILike) => el?.id == reviewId);
+    const totalLikes =
+      status && !status?.["liked"]
+        ? parseInt(productCurrentLikes?.likes) + 1
+        : ((parseInt(productCurrentLikes?.likes) - 1) as number);
 
+    const result = await axios.put(
+      `products/${product?.id}/reviews/${reviewId}`,
+      { likes: totalLikes }
+    );
 
-  const handleLike = (reviewId?: string,isChecked?:boolean) => {
-    setLiked((prevReviews: any) =>
-    prevReviews.map((review:any) =>
-      review.id === reviewId ? { ...review, liked: !review.liked } : review
-    )
-  );
-  const status=Object.keys(liked ?? {}).length && liked.find((el:IILike)=>el?.id==reviewId) 
-  console.log("%c ✳️: handleLike -> status ", "font-size:16px;background-color:#c78596;color:white;", status)
+    handleProductReviews(product?.id ?? item?.id, true);
+    setLiked((prevReviews:IILike[]) =>
+      prevReviews.map((review:IILike) =>
+        review.id === reviewId ? { ...review, liked: !review.liked } : review
+      )
+    );
+    return result;
+  };
+  const handleDataReview = (data?:IReviewProps | string, mode?: string) => {
+    const dataId=typeof data=='object' ? data?.id :undefined
+    navigate(
+      `/review?mode=${mode}&productId=${item?.id ?? product?.id}&id=${
+        dataId ?? " "
+      }&categoryId=${item?.categoryId ?? product?.categoryId}`,
+      {
+        state: {
+          productId: item?.id ?? product?.id,
+          categoryId: item?.categoryId ?? product?.categoryId,
+          reviewId: dataId,
+          items:data
+        },
+      }
+    );
   };
   useEffect(() => {
-    const { item } = location?.state ?? {};
-    console.log(
-      "%c 🏐: ProductDetailsPage:React.FC -> item ",
-      "font-size:16px;background-color:#718bb6;color:white;",
-      item
-    );
     setProduct({ ...item });
-    handleProductReviews(item?.id);
+    handleProductReviews(item?.id, false);
   }, [location?.state]);
   return (
     <div className="">
@@ -61,8 +97,8 @@ const ProductDetailsPage: React.FC = () => {
           <div className="w-full aspect-square border border-2">
             <img
               className="w-[100%] h-full object-cover"
-              src={product?.image}
-              alt="product-image-detail"
+              src={product?.image ?? ''}
+              alt={"product-list"}
             />
           </div>
 
@@ -87,7 +123,12 @@ const ProductDetailsPage: React.FC = () => {
             <p>{moment(product?.createdAt).format("MM/DD/YY")}</p>
           </span>
           <div className="pt-2 pb-2 px">
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={() => {
+                handleDataReview(" ", "insert");
+              }}
+            >
               Add Review
             </button>
           </div>
@@ -95,66 +136,86 @@ const ProductDetailsPage: React.FC = () => {
             <b>Reviews:</b>
           </span>
         </div>
-
-        <div className="flex flex-wrap">
-          {Object.keys(reviewsProducts ?? []).length &&
-            reviewsProducts.map((item: any) => {
-              const isLike=Object.keys(liked ?? {}).length && liked.find((el:IILike)=>el?.id==item?.id) 
-              const number = item?.rating.toString() as string;
-              const rate: string = number
-                ? parseInt(number?.charAt(0)) > 4 &&
-                  parseInt(number?.charAt(0)) <= 9
-                  ? "5"
-                  : number.charAt(0)
-                : "";
-              return (
-                <div className="w-[25%] px-5 pb-0 pt-4" key={item?.id}>
-                  <span className="flex space-x-2 w-100">
-                    <b>AuthorName:</b> <p>{item?.name}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>AuthorAvatar:</b>{" "}
-                    <div className="aspect-w-1 aspect-h-1 rounded-full bg-gray-300">
-                      <img
-                        className="inline-block h-12 w-12 rounded-full ring-2 ring-white"
-                        src={item?.avatar}
-                        alt="author-image"
-                      />
-                    </div>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>AuthorEmail:</b> <p>{item?.email ?? ""}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>Title:</b> <p>{item?.title ?? ""}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>Content:</b> <p>{item?.content ?? ""}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>Rating:</b> <p>{rate}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>Badge:</b> <p>{item?.verified ? "true" : "false"}</p>
-                  </span>
-                  <span className="flex space-x-2">
-                    <b>Likes:</b> <p>{item?.likes ?? ""}</p>
-                  </span>
+      </div>
+      <div className="flex flex-wrap px-5 space-y-2 space-x-2">
+        {!!Object.keys(reviewsProducts ?? []).length &&
+          reviewsProducts.map((item:IReviewProps) => {
+            const isLike =
+              Object.keys(liked ?? {}).length &&
+              liked.find((el: IILike) => el?.id == item?.id);
+            const number = item?.rating.toString() as string;
+            const rate: string = number
+              ? parseInt(number?.charAt(0)) > 4 &&
+                parseInt(number?.charAt(0)) <= 9
+                ? "5"
+                : number.charAt(0)
+              : "";
+            return (
+              <div
+                className="w-[25%] px-5 border-2 pb-0 pt-4 py-4"
+                key={item?.id}
+              >
+                <span className="flex space-x-2 w-100">
+                  <b>AuthorName:</b> <p>{item?.name}</p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>AuthorAvatar:</b>{" "}
+                  <div className="aspect-w-1 aspect-h-1 rounded-full bg-gray-300">
+                    <img
+                      className="inline-block h-12 w-12 rounded-full ring-2 ring-white"
+                      src={item?.avatar ?? ''}
+                      alt={"author-"+item?.id}
+                    />
+                  </div>
+                </span>
+                <span className="flex space-x-2">
+                  <b>AuthorEmail:</b> <p>{item?.email ?? ""}</p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>Title:</b> <p>{item?.title ?? ""}</p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>Content:</b> <p>{item?.content ?? ""}</p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>Rating:</b> <p>{rate}</p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>Badge:</b>{" "}
+                  <p>
+                    {item?.verified.toString() == "true" ? "true" : "false"}
+                  </p>
+                </span>
+                <span className="flex space-x-2">
+                  <b>Likes:</b> <p>{item?.likes ?? ""}</p>
+                </span>
+                <button
+                  onClick={() => {
+                    handleLike(item?.id);
+                  }}
+                  className={`flex items-center space-x-1 px-2 py-1 bg-gray-200 rounded-full ${
+                    isLike && isLike?.["liked"]
+                      ? "text-blue-500"
+                      : "text-gray-500"
+                  } hover:bg-gray-300 focus:outline-none`}
+                >
+                  <AiOutlineLike />
+                  <span>{isLike && isLike?.["liked"] ? "Liked" : "Like"}</span>
+                </button>
+                <div className="pt-4">
                   <button
+                    className="bg-blue-500 text-white py-1 px-7 rounded hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue active:bg-blue-800"
+                    type="button"
                     onClick={() => {
-                      handleLike(item?.id,isLike as any);
+                      handleDataReview(item, "update");
                     }}
-                    className={`flex items-center space-x-1 px-2 py-1 bg-gray-200 rounded-full ${
-                      isLike && isLike?.['liked']? "text-blue-500" : "text-gray-500"
-                    } hover:bg-gray-300 focus:outline-none`}
                   >
-                    <AiOutlineLike />
-                    <span>{isLike && isLike?.['liked'] ? "Liked" : "Like"}</span>
+                    Edit
                   </button>
                 </div>
-              );
-            })}
-        </div>
+              </div>
+            );
+          })}
       </div>
     </div>
   );
