@@ -56,29 +56,33 @@ const ProductListPage: React.FC = () => {
   };
 
   const handleDataSearch = async (searchText: string) => {
-    const searchQuery = searchText.toLowerCase();
-    if (searchQuery) {
-      const searchResult = await axios.get<any, AxiosResponse<any, any>, any>(
-        `products?search=${searchQuery}`
-      );
-
-      const allSearchProducts = searchResult?.data
-        .map((item: IProductProps) => {
-          const category = categories.find(
-            (itemCategory: ICategoriesProps) =>
-              itemCategory?.id === item?.categoryId
-          );
-          if (item) {
-            return { ...item, categoryName: category?.name ?? "" };
-          }
-          return null;
-        })
-        .filter((y: Object) => y);
-      setProducts(allSearchProducts);
-      return;
-    } else {
-      handleFetchData();
+    try {
+      const searchQuery = searchText.toLowerCase();
+      if (searchQuery) {
+        const searchResult = await axios.get<any, AxiosResponse<any, any>, any>(
+          `products?search=${searchQuery}`
+        );
+        const allSearchProducts = searchResult?.data
+          .map((item: IProductProps) => {
+            const category = categories.find(
+              (itemCategory: ICategoriesProps) =>
+                itemCategory?.id === item?.categoryId
+            );
+            if (item) {
+              return { ...item, categoryName: category?.name ?? "" };
+            }
+            return null;
+          })
+          .filter((y: Object) => y);
+        setProducts(allSearchProducts);
+        return;
+      } else {
+        handleFetchData();
+      }
+    } catch (error:any) {
+      console.error(error?.message)
     }
+
   };
 
   useEffect(() => {
@@ -89,24 +93,30 @@ const ProductListPage: React.FC = () => {
   const handleCategoryChange = async (event: {
     target: { value: React.SetStateAction<string> };
   }) => {
-    setSelectedCategory(event.target.value);
-    if (event.target.value) {
-      const searchResult = await axios.get(
-        `products?categoryId=${event.target.value}`
-      );
-      const productCategories = searchResult?.data
-        .filter((el: IProductProps) => el?.categoryId === event.target.value)
-        .map((item: ICategoriesProps) => {
-          const categoryData = categories.find(
-            (itemCategory: ICategoriesProps) =>
-              itemCategory?.id === item?.categoryId
-          );
-          return { ...item, categoryName: categoryData?.["name"] };
-        });
-      setProducts(productCategories);
-    } else {
-      handleFetchData();
+    try {
+      setSelectedCategory(event.target.value);
+      if (event.target.value) {
+        const searchResult = await axios.get(
+          `products?categoryId=${event.target.value}`
+        );
+        const productCategories = searchResult?.data
+          .filter((el: IProductProps) => el?.categoryId === event.target.value)
+          .map((item: ICategoriesProps) => {
+            const categoryData = categories.find(
+              (itemCategory: ICategoriesProps) =>
+                itemCategory?.id === item?.categoryId
+            );
+            return { ...item, categoryName: categoryData?.["name"] };
+          });
+        setProducts(productCategories);
+      } else {
+        handleFetchData();
+      }
+    } catch (error:any) {
+      alert(error?.message)
+      console.error(error)
     }
+ 
   };
   const handleNavigation = (item: IProductProps) => {
     navigate("/product", {
