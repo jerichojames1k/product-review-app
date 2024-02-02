@@ -170,7 +170,7 @@ const ProductListPage: React.FC = () => {
                   <p>{item?.categoryName ? item?.categoryName : "N/A"}</p>
                 </span>
                 <span>
-                  <b> Review count</b>
+                  <b> Reviews</b>
                   <p>{Object.keys(item?.reviews ?? []).length}</p>
                 </span>
               </div>
