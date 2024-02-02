@@ -1,23 +1,31 @@
-import axios from '../../../api/axios'
+import axios from "../../../api/axios";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AiOutlineLike } from "react-icons/ai";
-import { IILike, IProductProps, IReviewProps } from "./types";
-import { AxiosResponse } from 'axios';
+import { IILike, IProductProps, IRatingProps, IReviewProps } from "./types";
+import { AxiosResponse } from "axios";
+import RatingModal from "../../modal/ratings";
 const moment = require("moment");
 
 const ProductDetailsPage: React.FC = () => {
+const [loading,setLoading]=useState<boolean>(true)
   const [product, setProduct] = useState<IProductProps>({});
   const [reviewsProducts, setReviewProducts] = useState<IReviewProps[]>([]);
-  console.log("%c 🥜: ProductDetailsPage:React.FC -> reviewsProducts ", "font-size:16px;background-color:#b00d72;color:white;", reviewsProducts)
-  const [countRating,setCountRating]=useState({1:0,2:0,3:0,4:0,5:0})
-  console.log("%c 🧝‍♂️: ProductDetailsPage:React.FC -> countRating ", "font-size:16px;background-color:#43ac2c;color:white;", countRating)
+  const [countRating, setCountRating] = useState<IRatingProps>({
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  });
+  const [isRatingModal, setIsRatingModal] = useState<boolean>(false);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { item } = location?.state ?? {};
   const [liked, setLiked] = useState<IILike[]>([]);
   const totalRating = product?.reviews
-    ?.map((item:IReviewProps) => {
+    ?.map((item: IReviewProps) => {
       const number = item?.rating.toString() as string;
       return parseInt(number?.charAt(0));
     })
@@ -25,6 +33,7 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleProductReviews = async (id?: string, isLiked?: boolean) => {
     try {
+      setLoading(true)
       const result = await axios.get<any, AxiosResponse<any, any>, any>(
         `products/${id}/reviews?sortBy=likes&order=desc`
       );
@@ -32,21 +41,29 @@ const ProductDetailsPage: React.FC = () => {
       if (!isLiked) {
         const reviews =
           Object.keys(result?.data ?? []).length &&
-          result?.data.map((item:IReviewProps) => ({
+          result?.data.map((item: IReviewProps) => ({
             id: item?.id,
             liked: false,
             likes: item?.likes,
           }));
         setLiked(reviews);
       }
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+      }, 2500);
+      return () => clearTimeout(timeoutId);
     } catch (error) {
       console.error("Error fetching data:", error);
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+      }, 2500);
+      return () => clearTimeout(timeoutId);
     }
   };
 
   const handleLike = async (reviewId?: string) => {
-    const productCurrentLikes= reviewsProducts.find(
-      (el:IReviewProps) => el?.id == reviewId
+    const productCurrentLikes = reviewsProducts.find(
+      (el: IReviewProps) => el?.id == reviewId
     ) as IReviewProps;
     const status =
       Object.keys(liked ?? {}).length &&
@@ -62,15 +79,15 @@ const ProductDetailsPage: React.FC = () => {
     );
 
     handleProductReviews(product?.id ?? item?.id, true);
-    setLiked((prevReviews:IILike[]) =>
-      prevReviews.map((review:IILike) =>
+    setLiked((prevReviews: IILike[]) =>
+      prevReviews.map((review: IILike) =>
         review.id === reviewId ? { ...review, liked: !review.liked } : review
       )
     );
     return result;
   };
-  const handleDataReview = (data?:IReviewProps | string, mode?: string) => {
-    const dataId=typeof data=='object' ? data?.id :undefined
+  const handleDataReview = (data?: IReviewProps | string, mode?: string) => {
+    const dataId = typeof data == "object" ? data?.id : undefined;
     navigate(
       `/review?mode=${mode}&productId=${item?.id ?? product?.id}&id=${
         dataId ?? " "
@@ -80,31 +97,31 @@ const ProductDetailsPage: React.FC = () => {
           productId: item?.id ?? product?.id,
           categoryId: item?.categoryId ?? product?.categoryId,
           reviewId: dataId,
-          items:data
+          items: data,
         },
       }
     );
   };
-  const handleCountRating=(reviews:IReviewProps[])=>{
-    return reviews.reduce((countMap:any, review:IReviewProps) => {
-      const number=review.rating ? review.rating.toString() : 0;
+  const handleCountRating = (reviews: IReviewProps[]) => {
+    return reviews.reduce((countMap: any, review: IReviewProps) => {
+      const number = review.rating ? review.rating.toString() : 0;
       const rating: number = number
-      ? parseInt(number?.charAt(0)) > 4 &&
-        parseInt(number?.charAt(0)) <= 9
-        ? 5
-        : parseInt(number.charAt(0))
-      : 0;
-      // Increment the count for the specific rating
+        ? parseInt(number?.charAt(0)) > 4 && parseInt(number?.charAt(0)) <= 9
+          ? 5
+          : parseInt(number.charAt(0))
+        : 0;
       countMap[rating] = (countMap[rating] || 0) + 1;
-  
       return countMap;
     }, {});
-  }
-  const handleViewAllRating=()=>{
-    const ratingCounts = handleCountRating(reviewsProducts);
-    console.log("%c ⏯️: handleViewAllRating -> ratingCounts ", "font-size:16px;background-color:#8b2767;color:white;", ratingCounts)
-    setCountRating({...countRating,...ratingCounts})
-  }
+  };
+  const handleViewAllRating = async () => {
+    const ratingCounts = await handleCountRating(reviewsProducts);
+    setCountRating({ ...countRating, ...ratingCounts });
+    setIsRatingModal(true);
+  };
+  const handleClose = (value: boolean) => {
+    setIsRatingModal(value);
+  };
 
   useEffect(() => {
     setProduct({ ...item });
@@ -120,7 +137,7 @@ const ProductDetailsPage: React.FC = () => {
           <div className="w-full aspect-square border border-2">
             <img
               className="w-[100%] h-full object-cover"
-              src={product?.image ?? ''}
+              src={product?.image ?? ""}
               alt={"product-list"}
             />
           </div>
@@ -135,12 +152,26 @@ const ProductDetailsPage: React.FC = () => {
           <span className="flex space-x-2">
             <b>Details:</b> <p>{product?.details}</p>
           </span>
-          <span className="flex space-x-2">
-            <b onClick={handleViewAllRating}>Overall Rating</b>{" "}
+          <span
+            className="flex space-x-2 hover:text-blue-500"
+            onClick={() => {
+              handleViewAllRating();
+            }}
+          >
+            <b>Overall Rating</b>{" "}
             <p>
-              {Object.keys(product?.reviews ?? []).length ? `${'('+totalRating+')'}` : ""}
+              {Object.keys(product?.reviews ?? []).length
+                ? `${"(" + totalRating + ")"}`
+                : ""}
             </p>
           </span>
+          {isRatingModal && (
+            <RatingModal
+              isOpen={isRatingModal}
+              onClose={(status: boolean) => handleClose(status)}
+              ratingCounts={countRating}
+            />
+          )}
           <span className="flex space-x-2">
             <b>Date Created:</b>{" "}
             <p>{moment(product?.createdAt).format("MM/DD/YY")}</p>
@@ -155,14 +186,17 @@ const ProductDetailsPage: React.FC = () => {
               Add Review
             </button>
           </div>
-          <span className="flex space-x-2 pt-2">
-            <b className='text-2xl'>Reviews</b>
-          </span>
         </div>
       </div>
-      <div className="flex flex-wrap px-5 space-y-2 space-x-2">
+      <div className="flex items-center justify-center">
+        {" "}
+        <span className="flex space-x-2 pt-2">
+          <b className="text-2xl">Reviews</b>
+        </span>
+      </div>
+      <div className="flex flex-wrap w-full">
         {!!Object.keys(reviewsProducts ?? []).length &&
-          reviewsProducts.map((item:IReviewProps) => {
+          reviewsProducts.map((item: IReviewProps) => {
             const isLike =
               Object.keys(liked ?? {}).length &&
               liked.find((el: IILike) => el?.id == item?.id);
@@ -175,9 +209,10 @@ const ProductDetailsPage: React.FC = () => {
               : "";
             return (
               <div
-                className="w-[25%] px-5 border-2 pb-0 pt-4 py-4"
+                className="w-[25%] px-5 pb-0 pt-4"
                 key={item?.id}
               >
+                <div className="border-2 w-full h-full p-4">
                 <span className="flex space-x-2 w-100">
                   <b>AuthorName:</b> <p>{item?.name}</p>
                 </span>
@@ -186,13 +221,14 @@ const ProductDetailsPage: React.FC = () => {
                   <div className="aspect-w-1 aspect-h-1 rounded-full bg-gray-300">
                     <img
                       className="inline-block h-12 w-12 rounded-full ring-2 ring-white"
-                      src={item?.avatar ?? ''}
-                      alt={"author-"+item?.id}
+                      src={item?.avatar ?? ""}
+                      alt={"author-" + item?.id}
                     />
                   </div>
                 </span>
                 <span className="flex space-x-2">
-                  <b>AuthorEmail:</b> <p className='break'>{item?.email ?? ""}</p>
+                  <b>AuthorEmail:</b>{" "}
+                  <p className="break">{item?.email ?? ""}</p>
                 </span>
                 <span className="flex space-x-2">
                   <b>Title:</b> <p>{item?.title ?? ""}</p>
@@ -236,10 +272,25 @@ const ProductDetailsPage: React.FC = () => {
                     Edit
                   </button>
                 </div>
+                </div>
               </div>
             );
           })}
       </div>
+      {loading && !Object.keys(reviewsProducts ?? []).length  && (
+        <div className="flex items-center justify-center pt-10">
+        <img
+          src="https://static.wixstatic.com/media/ce39bd_b2eb1073c3d742b2972db5e514c3705f~mv2.gif"  // Replace with the path to your loading spinner GIF
+          alt="Loading"
+          className="w-48 h-auto"
+        />
+      </div>
+      )}
+       { !loading && !Object.keys(reviewsProducts ?? []).length  && (
+        <div className="flex items-center justify-center pt-10">
+           <p className="text-2xl font-semibold">There's no reviews</p>
+      </div>
+      )}
     </div>
   );
 };

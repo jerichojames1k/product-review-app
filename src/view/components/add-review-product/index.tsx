@@ -13,6 +13,7 @@ const ReviewProductPage: React.FC = () => {
   const reviewId = searchParams.get("id");
   const productID = searchParams.get("productId");
   const categoryId = searchParams.get("categoryId");
+  const [error,setError]=useState<string>('')
   const [dataReview, setDataReview] = useState<IDataReview>({
     content: "",
     email: "",
@@ -39,12 +40,12 @@ const ReviewProductPage: React.FC = () => {
     const requiredField = ["name", "email", "title", "content", "rating"];
     const errorData = formValidation(dataReview, requiredField);
     const isValid = Object.values(errorData ?? []).every(
-      (item: string) => item == " " || item == undefined
+      (item: string) => item === " " || item === undefined
     );
     setErrors({ ...errors, ...errorData });
     if (isValid) {
       try {
-        if (mode == "update") {
+        if (mode === "update") {
           const insertReview = await axios.put<any, AxiosResponse<any, any>, IDataReview>(
             `categories/${categoryId}/products/${productID}/reviews/${reviewId}`,
             dataReview
@@ -54,7 +55,7 @@ const ReviewProductPage: React.FC = () => {
             return;
           }
         }
-        if (mode == "insert") {
+        if (mode === "insert") {
           const insertReview = await axios.post<any, AxiosResponse<any, any>, IDataReview>(
             `categories/${categoryId}/products/${productID}/reviews`,
             dataReview
@@ -63,11 +64,14 @@ const ReviewProductPage: React.FC = () => {
             navigate(-1);
           }
         }
+        setError('')
       } catch (error: any) {
         console.error("Error fetching data:", error?.message);
+        setError(error?.message)
       }
     }
   };
+
 
   useEffect(() => {
     if (items?.id && Object.keys(items ?? []).length) {
@@ -78,9 +82,9 @@ const ReviewProductPage: React.FC = () => {
         ? "5"
         : number.charAt(0)
       : "";
-      setDataReview({ ...dataReview, ...items ,rating:(number ? rate  : "") });
+   setDataReview({...items ,rating:(number ? rate  : "") });
     }
-  }, [location?.state]);
+  }, [location?.state,items]);
 
   return (
     <div className="container mx-auto mt-8">
@@ -212,6 +216,7 @@ const ReviewProductPage: React.FC = () => {
           </button>
         </div>
       </div>
+      {error && <div className="flex justify-center p-10 flex-row space-x-2"><p  className="text-2xl font-semibold">Error Message:</p> <p className="text-2xl"> {error ?? ''}</p></div>}
     </div>
   );
 };

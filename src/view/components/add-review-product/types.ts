@@ -10,5 +10,6 @@ export interface IDataReview {
   rating?: string;
   title?: string;
   verified?: boolean;
+  [key:string]:any
 }
 

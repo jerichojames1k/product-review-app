@@ -30,3 +30,6 @@ export interface IProductProps {
   price?: string
   reviews?:IReviewProps[]
 }
+export interface IRatingProps{
+  [key:string]:number
+}
